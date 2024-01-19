@@ -26,6 +26,14 @@ So MDP is based on strcuturing the system into several **states**, We might thin
 The Difference to FSM is that To go from a state to a state we need to take an **action** however the output of this action is **probabilistic** and we do not know for sure the final outcome.
 For example, for a standing man that can either walk or run, the outcome can be resulting in him falling or reaching destination either he takes the first choce or the second, how ever when he walks the probability for falling is low on the other hand if he runs he will reach destination more quickly.
 
+### RL : common packages and tools : 
+
+#### Stable baselines : 
+
+It is a set of RL algorithms which aims to get it easier to use common models and it provides a great set of tools such as : 
+
+* **Callbacks** : They are a function called every once and a while when training the model, used in order to show metrics, evaluate training process and logging, To use them we need to overwrite a class in stable-baselines called **BaseCallback**.
+  
 ## Project : Signal Generation based on Reinforcement Learning
 
 I want to develop a DSP node having a signal aquisition unit, the input will be a signal of a certain frequency, My node will then act based on that and try to generate a signal similar to the input signal manipulating the STM32 periphirals such as timer and ADC.
