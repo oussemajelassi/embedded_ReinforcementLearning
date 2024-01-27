@@ -34,6 +34,8 @@ It is a set of RL algorithms which aims to get it easier to use common models an
 
 * **Callbacks** : They are a function called every once and a while when training the model, used in order to show metrics, evaluate training process and logging, To use them we need to overwrite a class in stable-baselines called **BaseCallback**.
   
-## Project : Signal Generation based on Reinforcement Learning
+## Project : Robot Orientation using Reinforcement Learning
 
-I want to develop a DSP node having a signal aquisition unit, the input will be a signal of a certain frequency, My node will then act based on that and try to generate a signal similar to the input signal manipulating the STM32 periphirals such as timer and ADC.
+### Serial Communication :
+To ensure serial communication between collab environment and the STM32, we should connect collab to local runtime.
+to do so please follow [connect to local runtime](https://research.google.com/colaboratory/local-runtimes.html#:~:text=In%20Colab%2C%20click%20the%20%22Connect,connected%20to%20your%20local%20runtime.)
