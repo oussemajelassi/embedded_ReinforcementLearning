@@ -39,3 +39,9 @@ It is a set of RL algorithms which aims to get it easier to use common models an
 ### Serial Communication :
 To ensure serial communication between collab environment and the STM32, we should connect collab to local runtime.
 to do so please follow [connect to local runtime](https://research.google.com/colaboratory/local-runtimes.html#:~:text=In%20Colab%2C%20click%20the%20%22Connect,connected%20to%20your%20local%20runtime.)
+
+### Training Phase :
+
+In order to set up a training envirenment, I will establish an RTOS program running on the STM32 in order to recieve orders, execute and then give back results.
+
+There will be two tasks running for now, the first one is communicationTask , will wait for orders and then puts the new order in a queue and goes to sleep. The other task is initially asleep, once recieved the value will update the command and waits for 200ms and then calculates the results and puts them in another queue and goes back to sleep. 
