@@ -8,9 +8,10 @@
 #ifndef INC_TINYRL_H_
 #define INC_TINYRL_H_
 
-// Funtion Like Macro
+#include "stdint.h"
+#include "main.h"
 
-
+/* Funtion Like Macros Begin */
 #define ROBOT_MOTOR_CLOCKWISE		\
 		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET ); \
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET ); \
@@ -26,6 +27,21 @@
 
 #define ROBOT_MOTOR_MODIFY_PWM	TIM1->CCR1 = ROBOT_MotorPWM ; \
 								TIM1->CCR2 = ROBOT_MotorPWM
+/* Funtion Like Macros End */
+
+/* MACROS Begin */
+
+#define RL_OBSERVATION_TIME_BEFORE_REPORTING_ms 200
+
+// 									*** Hardware ****
+#define RL_LeftEncoder 	TIM2
+#define RL_RightEncoder	TIM5
+
+#define RL_RIGHT_WHEEL_RADIUS_m 0.025
+#define RL_LEFT_WHEEL_RADIUS_m  0.025
+#define RL_ROBOT_SPACING_m		0.250
+
+/* Macros End */
 
 typedef struct
 {
@@ -43,5 +59,13 @@ typedef enum
 	ROBOT_GivingBackObservations
 }ROBOT_States;
 
+/* Function Prototypes Begin */
+
+float RL_RobotGetRightWheelVelocity (void) ;
+float RL_RobotGetLeftWheelVelocity (void) ;
+float RL_RobotGetCurrentAngle (void) ;
+float RL_RobotResetParcouredDistances (void) ;
+
+/* Function Prototypes End */
 
 #endif /* INC_TINYRL_H_ */
