@@ -25,9 +25,9 @@
 #include "string.h"
 #include "stdio.h"
 #include "TinyRL.h"
+#include "queue.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "queue.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -567,20 +567,33 @@ void vActionExecutionTask( void* argument )
 {
 	// Local Variables
 	int32_t Robot_MotorsPMW ;
-	RobotObservation RL_CurrentRobotObservations ;
+	RobotObservation RL_CurrentRobotObservations = { 0 , 0 , 0 , 0 , 0 } ;
+
 	for (;;)
 	{
-		xQueue
-		if ( ROBOT_MotorPWM > 0 )
+		xQueueReceive( RL_OrdersQueue, &Robot_MotorsPMW, portMAX_DELAY ) ;
+		if ( ROBOT_MotorPWM >= 0 )
 		{
 			ROBOT_MOTOR_CLOCKWISE ;
 			ROBOT_MOTOR_MODIFY_PWM ;
 		}
-		else if ( ROBOT_MotorPWM < 0 )
+		else if ( ROBOT_MotorPWM <= 0 )
 		{
 			ROBOT_MOTOR_COUNTERCLOCKWISE ;
 			ROBOT_MOTOR_MODIFY_PWM ;
 		}
+		vTaskDelay(pdMS_TO_TICKS(RL_OBSERVATION_TIME_BEFORE_REPORTING_ms ) ) ;
+		RL_CurrentRobotObservations.LeftWheelVelocity  = RL_RobotGetLeftWheelVelocity()  ;
+		RL_CurrentRobotObservations.RightWheelVelocity = RL_RobotGetRightWheelVelocity() ;
+		RL_CurrentRobotObservations.Angle = RL_RobotGetCurrentAngle() ;
+		RL_RobotResetParcouredDistances() ;
+		if ((RL_CurrentRobotObservations.Angle > 180 ) || (RL_CurrentRobotObservations.Angle < - 180 ) )
+		{
+			Robot_MotorsPMW = 0 ;
+			ROBOT_MOTOR_MODIFY_PWM ;
+			RL_CurrentRobotObservations.Terminated = 1 ;
+		}
+		xQueueSend( RL_ObservationsQueue , &RL_CurrentRobotObservations , 1 ) ;
 	}
 }
 /* USER CODE END 4 */
@@ -620,8 +633,6 @@ void vCommunication(void *argument)
 				}
 				ROBOT_CurrentState = ROBOT_UpdatingOrders ;
 				vTaskDelay(1) ;
-
-
 			}
 			else
 			{
