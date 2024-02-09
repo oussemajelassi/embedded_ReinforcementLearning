@@ -25,8 +25,8 @@
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_RESET ); \
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7, GPIO_PIN_SET ) \
 
-#define ROBOT_MOTOR_MODIFY_PWM	TIM1->CCR1 = ROBOT_MotorPWM ; \
-								TIM1->CCR2 = ROBOT_MotorPWM
+#define ROBOT_MOTOR_MODIFY_PWM	TIM1->CCR1 = Robot_MotorsPMW ; \
+								TIM1->CCR2 = Robot_MotorsPMW
 /* Funtion Like Macros End */
 
 /* MACROS Begin */
@@ -59,6 +59,12 @@ typedef enum
 	ROBOT_GivingBackObservations
 }ROBOT_States;
 
+typedef enum
+{
+	RL_WaitingForOrders,
+	RL_ExecutingTask,
+	RL_SendingReport
+}RL_ActionExecutionStates;
 /* Function Prototypes Begin */
 
 float RL_RobotGetRightWheelVelocity (void) ;
