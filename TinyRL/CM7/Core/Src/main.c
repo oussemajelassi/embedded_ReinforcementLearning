@@ -64,7 +64,7 @@ UART_HandleTypeDef huart3;
 osThreadId_t CommunicationTaHandle;
 const osThreadAttr_t CommunicationTa_attributes = {
 		.name = "CommunicationTa",
-		.stack_size = 128 * 4,
+		.stack_size = 256 * 4,
 		.priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -169,7 +169,7 @@ int main(void)
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
-	xTaskCreate(vActionExecutionTask, "ActionExecution" , 128 * 4, NULL , (UBaseType_t) osPriorityNormal ,& ActionExecutionAction);
+	xTaskCreate(vActionExecutionTask, "ActionExecution" , 256 * 4, NULL , (UBaseType_t) osPriorityNormal ,& ActionExecutionAction);
 	/* USER CODE END RTOS_THREADS */
 
 	/* USER CODE BEGIN RTOS_EVENTS */
@@ -533,50 +533,53 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	uint8_t message [100] = "{ \"angle\": 45.0, \"rightVelocity\": 10.5, \"leftVelocity\": 9.0 }\n"; ;
-	float rightVelocity  =  100 ;
-	float angle 		 =  92.3;
-	float leftVelocity	 = -233.3 ;
-	float time = 255 ;
-	float velo = 300 ;
-	sprintf((char*)message , "{ \"STM32TimeStamp\": %f, \"Terminated\": %f, \"CurrentRobotAngle\": %f, \"CurrentRightWheelVelocity\": %f, \"CurrentRightWheelVelocity\": %f }\n" ,time ,0 , angle , rightVelocity ,leftVelocity ) ;
-	HAL_UART_Transmit(&huart3, message , strlen(message), 100) ;
-}
 
 void vActionExecutionTask( void* argument )
 {
 	// Local Variables
 	int32_t Robot_MotorsPMW ;
 	RobotObservation RL_CurrentRobotObservations = { 0 , 0 , 0 , 0 , 0 } ;
-
+	RL_ActionExecutionStates RL_ActionExecutionCurrentState = RL_WaitingForOrders ;
 	for (;;)
 	{
-		xQueueReceive( RL_OrdersQueue, &Robot_MotorsPMW, portMAX_DELAY ) ;
+		switch (RL_ActionExecutionCurrentState)
+
+		{
+		case RL_WaitingForOrders :
+			xQueueReceive( RL_OrdersQueue, &Robot_MotorsPMW, portMAX_DELAY ) ;
+			RL_ActionExecutionCurrentState = RL_ExecutingTask ;
+			break;
+		case  RL_ExecutingTask :
 		if ( Robot_MotorsPMW >= 0 )
-		{
-			ROBOT_MOTOR_CLOCKWISE ;
-			ROBOT_MOTOR_MODIFY_PWM ;
+				{
+					ROBOT_MOTOR_CLOCKWISE ;
+					ROBOT_MOTOR_MODIFY_PWM ;
+				}
+				else if ( Robot_MotorsPMW <= 0 )
+				{
+					ROBOT_MOTOR_COUNTERCLOCKWISE ;
+					ROBOT_MOTOR_MODIFY_PWM ;
+				}
+				vTaskDelay(pdMS_TO_TICKS(RL_OBSERVATION_TIME_BEFORE_REPORTING_ms ) ) ;
+				RL_CurrentRobotObservations.LeftWheelVelocity  = 100  ;
+				RL_CurrentRobotObservations.RightWheelVelocity = 200 ;
+				RL_CurrentRobotObservations.Angle = RL_RobotGetCurrentAngle() ;
+				RL_RobotResetParcouredDistances() ;
+				if ((RL_CurrentRobotObservations.Angle > 180 ) || (RL_CurrentRobotObservations.Angle < - 180 ) )
+				{
+					Robot_MotorsPMW = 0 ;
+					ROBOT_MOTOR_MODIFY_PWM ;
+					RL_CurrentRobotObservations.Terminated = 1 ;
+				}
+				RL_ActionExecutionCurrentState = RL_SendingReport ;
+				break ;
+		case RL_SendingReport :
+			xQueueSend( RL_ObservationsQueue , &RL_CurrentRobotObservations , 10 ) ;
+			RL_ActionExecutionCurrentState = RL_WaitingForOrders ;
+			break;
 		}
-		else if ( Robot_MotorsPMW <= 0 )
-		{
-			ROBOT_MOTOR_COUNTERCLOCKWISE ;
-			ROBOT_MOTOR_MODIFY_PWM ;
+
 		}
-		vTaskDelay(pdMS_TO_TICKS(RL_OBSERVATION_TIME_BEFORE_REPORTING_ms ) ) ;
-		RL_CurrentRobotObservations.LeftWheelVelocity  = RL_RobotGetLeftWheelVelocity()  ;
-		RL_CurrentRobotObservations.RightWheelVelocity = RL_RobotGetRightWheelVelocity() ;
-		RL_CurrentRobotObservations.Angle = RL_RobotGetCurrentAngle() ;
-		RL_RobotResetParcouredDistances() ;
-		if ((RL_CurrentRobotObservations.Angle > 180 ) || (RL_CurrentRobotObservations.Angle < - 180 ) )
-		{
-			Robot_MotorsPMW = 0 ;
-			ROBOT_MOTOR_MODIFY_PWM ;
-			RL_CurrentRobotObservations.Terminated = 1 ;
-		}
-		xQueueSend( RL_ObservationsQueue , &RL_CurrentRobotObservations , 1 ) ;
-	}
 }
 /* USER CODE END 4 */
 
@@ -604,7 +607,7 @@ void vCommunication(void *argument)
 		switch ( ROBOT_CurrentState )
 		{
 		case ROBOT_WaitingForOrders :
-			HAL_MessageStatus = HAL_UART_Receive(&huart3, &RecievedData , 1 , 1 ) ;
+ 			HAL_MessageStatus = HAL_UART_Receive(&huart3, &RecievedData , 1 , 10 ) ;
 			if ( HAL_MessageStatus == HAL_OK )
 			{
 				if (RecievedData == '0')
@@ -624,11 +627,13 @@ void vCommunication(void *argument)
 			}
 			break;
 		case ROBOT_UpdatingOrders :
-			xQueueSend(RL_OrdersQueue , &Robot_MotorsPMW , 0 ) ;
 			HAL_TIM_Base_Start(&htim3);
+			xQueueSend(RL_OrdersQueue , &Robot_MotorsPMW , portMAX_DELAY ) ;
 			// Here This task will be blocked until receiving the observations
 			xQueueReceive( RL_ObservationsQueue , &RL_CurrentRobotObservation , portMAX_DELAY ) ;
+			xQueueReset(RL_ObservationsQueue);
 			RL_TimeStamp = TIM3->CNT ;
+			TIM3->CNT = 0  ;
 			HAL_TIM_Base_Stop(&htim3) ;
 			ROBOT_CurrentState = ROBOT_GivingBackObservations ;
 
@@ -636,6 +641,8 @@ void vCommunication(void *argument)
 		case ROBOT_GivingBackObservations :
 			sprintf((char*)message , "{ \"STM32TimeStamp\": %d, \"Terminated\": %d, \"CurrentRobotAngle\": %f, \"CurrentRightWheelVelocity\": %f, \"CurrentRightWheelVelocity\": %f }\n",RL_TimeStamp ,RL_CurrentRobotObservation.Terminated , RL_CurrentRobotObservation.Angle , RL_CurrentRobotObservation.RightWheelVelocity ,RL_CurrentRobotObservation.LeftWheelVelocity ) ;
 			HAL_UART_Transmit(&huart3, message , strlen((char*)message), 100) ;
+			xQueueReset(RL_ObservationsQueue);
+			xQueueReset(RL_OrdersQueue) ;
 			ROBOT_CurrentState = ROBOT_WaitingForOrders ;
 			break;
 		}
