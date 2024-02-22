@@ -46,6 +46,8 @@ In order to set up a training envirenment, I will establish an RTOS program runn
 
 There will be two tasks running for now, the first one is communicationTask , will wait for orders and then puts the new order in a queue and goes to sleep. The other task is initially asleep, once recieved the value will update the command and waits for 200ms and then calculates the results and puts them in another queue and goes back to sleep.
 
+**Model Selection** : In order to get with good results, we need to choose a model that fits our situation.
+
 #### Desired Output : 
 
 I want my robot to go closer to my desired Orientation range, I want also my Robot Velocity to 
