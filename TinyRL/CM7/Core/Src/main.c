@@ -612,11 +612,15 @@ void vCommunication(void *argument)
 			{
 				if (RecievedData == '0')
 				{
+					Robot_MotorsPMW -= ROBOT_MOTOR_PWM_STEP ;
+				}
+				else if ( RecievedData == '2' )
+				{
 					Robot_MotorsPMW += ROBOT_MOTOR_PWM_STEP ;
 				}
-				else if ( RecievedData == '1' )
+				else if ( RecievedData == '3' )
 				{
-					Robot_MotorsPMW -= ROBOT_MOTOR_PWM_STEP ;
+					Robot_MotorsPMW = 0 ;
 				}
 				ROBOT_CurrentState = ROBOT_UpdatingOrders ;
 				vTaskDelay(1) ;
@@ -633,13 +637,12 @@ void vCommunication(void *argument)
 			xQueueReceive( RL_ObservationsQueue , &RL_CurrentRobotObservation , portMAX_DELAY ) ;
 			xQueueReset(RL_ObservationsQueue);
 			RL_TimeStamp = TIM3->CNT ;
-			TIM3->CNT = 0  ;
 			HAL_TIM_Base_Stop(&htim3) ;
 			ROBOT_CurrentState = ROBOT_GivingBackObservations ;
 
 			break;
 		case ROBOT_GivingBackObservations :
-			sprintf((char*)message , "{ \"STM32TimeStamp\": %d, \"Terminated\": %d, \"CurrentRobotAngle\": %f, \"CurrentRightWheelVelocity\": %f, \"CurrentRightWheelVelocity\": %f }\n",RL_TimeStamp ,RL_CurrentRobotObservation.Terminated , RL_CurrentRobotObservation.Angle , RL_CurrentRobotObservation.RightWheelVelocity ,RL_CurrentRobotObservation.LeftWheelVelocity ) ;
+			sprintf((char*)message , "{ \"STM32TimeStamp\": %d, \"Terminated\": %d, \"CurrentRobotAngle\": %f, \"CurrentRightWheelVelocity\": %f, \"CurrentLeftWheelVelocity\": %f }\n",RL_TimeStamp ,RL_CurrentRobotObservation.Terminated , RL_CurrentRobotObservation.Angle , RL_CurrentRobotObservation.RightWheelVelocity ,RL_CurrentRobotObservation.LeftWheelVelocity ) ;
 			HAL_UART_Transmit(&huart3, message , strlen((char*)message), 100) ;
 			xQueueReset(RL_ObservationsQueue);
 			xQueueReset(RL_OrdersQueue) ;
